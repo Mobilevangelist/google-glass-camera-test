@@ -17,13 +17,24 @@
 package com.mobilevangelist.glass.cameratest.app;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.KeyEvent;
 
-//import com.google.android.glass.touchpad.GestureDetector;
+import com.google.android.glass.app.Card;
+import com.google.android.glass.timeline.TimelineManager;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Camera preview
@@ -32,15 +43,11 @@ public class CameraActivity extends Activity {
   private CameraPreview _cameraPreview;
   private Camera _camera;
 
-  //private GestureDetector _gestureDetector;
+  private Context _context = this;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    //setContentView(R.layout.camera_preview);
-
-    //_cameraPreview = (CameraPreview) findViewById(R.id.camerapreview);
 
     _cameraPreview = new CameraPreview(this);
     setContentView(_cameraPreview);
@@ -67,10 +74,61 @@ public class CameraActivity extends Activity {
     }
   }
 
+  public String savePicture(Bitmap image) throws IOException {
+    android.util.Log.d("CameraActivity", "Saving picture...");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS");
+    String imageFilename = sdf.format(new Date()) + ".jpg";
+    String imageFullPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + File.separator + "Camera" + File.separator + imageFilename;
+    //android.util.Log.d("CameraActivity", "external dcim dir: " + Environment.getExternalStoragePublicDirectory(Environment.));
+
+    FileOutputStream fos = null;
+    try {
+      fos = new FileOutputStream(imageFullPath);
+
+      image.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+
+      android.util.Log.d("CameraActivity", "Picture saved.");
+      return imageFullPath;
+    }
+    catch (IOException e) {
+      e.printStackTrace();
+
+      throw(e);
+    }
+    finally {
+      if (null != fos) {
+        try {
+          fos.close();
+        }
+        catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+
   class SavePicture implements Camera.PictureCallback {
     @Override
     public void onPictureTaken(byte[] bytes, Camera camera) {
       android.util.Log.d("CameraActivity", "In onPictureTaken().");
+      Bitmap image = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+
+      try {
+        // Save the image
+        String imageFilename = savePicture(image);
+
+        Uri uri = Uri.fromFile(new File(imageFilename));
+        android.util.Log.d("CameraActivity", "imageFilename: " + imageFilename);
+        android.util.Log.d("CameraActivity", "uri: " + uri);
+        Card photoCard = new Card(_context);
+        photoCard.setImageLayout(Card.ImageLayout.FULL);
+        photoCard.addImage(uri);
+        android.util.Log.d("CameraActivity", "Inserting into timeline.");
+        TimelineManager.from(_context).insert(photoCard);
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 }

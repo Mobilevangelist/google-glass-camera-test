@@ -20,10 +20,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -56,13 +58,12 @@ public class CameraPreview extends SurfaceView {
         try {
           // This camera parameter is set to fix a bug in XE12 that garbles the preview
           Camera.Parameters params = _camera.getParameters();
-          params.setPreviewFpsRange(5000, 5000);
+          params.setPreviewFpsRange(30000, 30000);
           _camera.setParameters(params);
 
           // Start the preview
           _camera.setPreviewDisplay(holder);
           _camera.startPreview();
-          _camera.autoFocus(null);
         }
         catch (IOException e) {
           e.printStackTrace();
@@ -81,17 +82,6 @@ public class CameraPreview extends SurfaceView {
       _camera.stopPreview();
       _camera.release();
       android.util.Log.d("CameraActivity", "surfaceDestroyed.");
-    }
-  }
-
-  class SavePicture implements Camera.PictureCallback {
-    @Override
-    public void onPictureTaken(byte[] bytes, Camera camera) {
-      android.util.Log.d("CameraActivity", "In onPictureTaken().");
-      Bitmap image = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-
-      // Save the image rotated counter-clockwise 90 degrees
-      //ImageUtil.savePicture(ImageUtil.rotateImage(image, -90), FrameImage.NO_FRAME_FILENAME);
     }
   }
 }
